@@ -186,7 +186,7 @@ def query_gemini(user_query: str) -> str:
 # ------------------ Flask App ------------------
 app = Flask(__name__)
 
-@app.route("/query", methods=["POST"])
+@app.route("/api/query", methods=["POST"])
 def query():
     """
     Handle incoming queries via POST request.
@@ -212,7 +212,7 @@ def query():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-@app.route("/health", methods=["GET"])
+@app.route("/api/health", methods=["GET"])
 def health_check():
     """
     Health check endpoint for monitoring the service.
@@ -225,7 +225,5 @@ def health_check():
     """
     return jsonify({"status": "healthy"})
 
-if __name__ == "__main__":
-    # Get port from environment variables or default to 8080
-    port = int(os.environ.get("PORT", 8080))
-    app.run(debug=True, port=port) 
+# Export the Flask app for Vercel
+app = app 
