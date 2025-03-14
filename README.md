@@ -24,6 +24,7 @@ Current stable release featuring:
 - Gemini API Key
 - Google Sheets API enabled
 
+
 ## Environment Variables
 
 ## Live Demo
