@@ -49,6 +49,12 @@
             <p class="text-gray-600">Voice-Enabled Sheets Assistant</p>
         </header>
 
+        <div class="bg-white rounded-lg shadow-lg p-4 mb-4">
+            <select id="voiceSelect" class="w-full p-2 border rounded text-gray-700">
+                <option value="">Loading voices...</option>
+            </select>
+        </div>
+
         <div class="bg-white rounded-lg shadow-lg p-4">
             <div id="chat" class="chat-container overflow-y-auto mb-6">
                 <div class="space-y-4" id="messages">
@@ -124,38 +130,33 @@
             messages.scrollTop = messages.scrollHeight;
         }
 
+        function populateVoiceList() {
+            const voiceSelect = document.getElementById('voiceSelect');
+            const voices = speechSynthesis.getVoices();
+            
+            // Filter to just English voices and sort alphabetically
+            const englishVoices = voices
+                .filter(voice => voice.lang.includes('en'))
+                .sort((a, b) => a.name.localeCompare(b.name));
+            
+            voiceSelect.innerHTML = englishVoices
+                .map(voice => `<option value="${voice.name}">${voice.name} (${voice.lang})</option>`)
+                .join('');
+        }
+
         function getPreferredVoice() {
             return new Promise(resolve => {
-                let voices = speechSynthesis.getVoices();
+                const voices = speechSynthesis.getVoices();
+                const selectedVoiceName = document.getElementById('voiceSelect').value;
+                
                 if (voices.length) {
-                    // VOICE PREFERENCES (in order of priority):
-                    // Try newer, more natural voices first
-                    // To test available voices, open browser console and type:
-                    // speechSynthesis.getVoices().forEach(v => console.log(v.name))
-                    let preferredVoice = voices.find(voice => 
-                        (voice.name.includes('Google UK English Female') || // Chrome's best voice
-                         voice.name.includes('Microsoft Katja') || // Another good option
-                         voice.name.includes('Victoria')) // macOS option
-                        && voice.lang.includes('en')
-                    );
-                    // If no preferred voice found, pick the first English voice
-                    if (!preferredVoice) {
-                        preferredVoice = voices.find(voice => voice.lang.includes('en'));
-                    }
-                    resolve(preferredVoice || voices[0]);
+                    const selectedVoice = voices.find(voice => voice.name === selectedVoiceName);
+                    resolve(selectedVoice || voices[0]);
                 } else {
                     speechSynthesis.onvoiceschanged = () => {
-                        voices = speechSynthesis.getVoices();
-                        let preferredVoice = voices.find(voice => 
-                            (voice.name.includes('Google UK English Female') ||
-                             voice.name.includes('Microsoft Katja') ||
-                             voice.name.includes('Victoria'))
-                            && voice.lang.includes('en')
-                        );
-                        if (!preferredVoice) {
-                            preferredVoice = voices.find(voice => voice.lang.includes('en'));
-                        }
-                        resolve(preferredVoice || voices[0]);
+                        const voices = speechSynthesis.getVoices();
+                        const selectedVoice = voices.find(voice => voice.name === selectedVoiceName);
+                        resolve(selectedVoice || voices[0]);
                     };
                 }
             });
@@ -169,6 +170,9 @@
             utterance.voice = await getPreferredVoice();
             window.speechSynthesis.speak(utterance);
         }
+
+        speechSynthesis.onvoiceschanged = populateVoiceList;
+        populateVoiceList();
     </script>
 </body>
 </html>
