@@ -15,7 +15,7 @@ import json
 import google.generativeai as genai
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_file
 
 app = Flask(__name__)
 
@@ -54,6 +54,10 @@ def query():
 @app.route('/api/health')
 def health():
     return jsonify({'status': 'healthy'})
+
+@app.route('/')
+def index():
+    return send_file('static/index.html')
 
 if __name__ == '__main__':
     app.run(port=3000) 

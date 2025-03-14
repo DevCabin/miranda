@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Miranda - Voice AI Sheets Assistant</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        .chat-container {
+            height: calc(100vh - 180px);
+        }
+        .pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .5; }
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="container mx-auto px-4 py-8">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-gray-800">Miranda</h1>
+            <p class="text-gray-600">Voice-Enabled Sheets Assistant</p>
+        </header>
+
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <div id="chat" class="chat-container overflow-y-auto mb-6">
+                <div class="space-y-4" id="messages">
+                    <!-- Messages will appear here -->
+                </div>
+            </div>
+
+            <div class="flex items-center justify-center space-x-4">
+                <button id="startBtn" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-full flex items-center space-x-2">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                    </svg>
+                    <span>Start Speaking</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const startBtn = document.getElementById('startBtn');
+        const messages = document.getElementById('messages');
+        let recognition;
+
+        if ('webkitSpeechRecognition' in window) {
+            recognition = new webkitSpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = false;
+            recognition.lang = 'en-US';
+
+            recognition.onstart = () => {
+                startBtn.classList.add('pulse');
+                startBtn.querySelector('span').textContent = 'Listening...';
+            };
+
+            recognition.onend = () => {
+                startBtn.classList.remove('pulse');
+                startBtn.querySelector('span').textContent = 'Start Speaking';
+            };
+
+            recognition.onresult = (event) => {
+                const query = event.results[0][0].transcript;
+                addMessage('user', query);
+                
+                // Send to our API
+                fetch('/api/query', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    addMessage('assistant', data.response);
+                    speak(data.response);
+                })
+                .catch(error => {
+                    addMessage('assistant', 'Sorry, there was an error processing your request.');
+                });
+            };
+
+            startBtn.addEventListener('click', () => {
+                recognition.start();
+            });
+        } else {
+            startBtn.textContent = 'Speech Recognition Not Supported';
+            startBtn.disabled = true;
+        }
+
+        function addMessage(sender, text) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `p-4 rounded-lg ${sender === 'user' ? 'bg-blue-100 ml-12' : 'bg-gray-100 mr-12'}`;
+            messageDiv.textContent = text;
+            messages.appendChild(messageDiv);
+            messages.scrollTop = messages.scrollHeight;
+        }
+
+        function speak(text) {
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.rate = 1;
+            utterance.pitch = 1;
+            window.speechSynthesis.speak(utterance);
+        }
+    </script>
+</body>
+</html> 
