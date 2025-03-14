@@ -128,23 +128,33 @@
             return new Promise(resolve => {
                 let voices = speechSynthesis.getVoices();
                 if (voices.length) {
-                    // Look for a natural-sounding female voice
+                    // VOICE PREFERENCES (in order of priority):
+                    // Try newer, more natural voices first
+                    // To test available voices, open browser console and type:
+                    // speechSynthesis.getVoices().forEach(v => console.log(v.name))
                     let preferredVoice = voices.find(voice => 
-                        (voice.name.includes('Samantha') || // MacOS
-                         voice.name.includes('Microsoft Zira') || // Windows
-                         voice.name.includes('Google UK English Female')) // Chrome
+                        (voice.name.includes('Google UK English Female') || // Chrome's best voice
+                         voice.name.includes('Microsoft Katja') || // Another good option
+                         voice.name.includes('Victoria')) // macOS option
                         && voice.lang.includes('en')
                     );
+                    // If no preferred voice found, pick the first English voice
+                    if (!preferredVoice) {
+                        preferredVoice = voices.find(voice => voice.lang.includes('en'));
+                    }
                     resolve(preferredVoice || voices[0]);
                 } else {
                     speechSynthesis.onvoiceschanged = () => {
                         voices = speechSynthesis.getVoices();
                         let preferredVoice = voices.find(voice => 
-                            (voice.name.includes('Samantha') ||
-                             voice.name.includes('Microsoft Zira') ||
-                             voice.name.includes('Google UK English Female'))
+                            (voice.name.includes('Google UK English Female') ||
+                             voice.name.includes('Microsoft Katja') ||
+                             voice.name.includes('Victoria'))
                             && voice.lang.includes('en')
                         );
+                        if (!preferredVoice) {
+                            preferredVoice = voices.find(voice => voice.lang.includes('en'));
+                        }
                         resolve(preferredVoice || voices[0]);
                     };
                 }
@@ -153,8 +163,9 @@
 
         async function speak(text) {
             const utterance = new SpeechSynthesisUtterance(text);
-            utterance.rate = 1.1;  // Slightly faster to sound more natural
-            utterance.pitch = 1.1; // Slightly higher pitch for younger sound
+            utterance.rate = 1.0;    // Normal speed for clarity
+            utterance.pitch = 1.15;  // Slightly higher for younger sound
+            utterance.volume = 1.0;  // Full volume
             utterance.voice = await getPreferredVoice();
             window.speechSynthesis.speak(utterance);
         }
