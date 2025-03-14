@@ -7,10 +7,34 @@
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <style>
         .chat-container {
-            height: calc(100vh - 180px);
+            height: calc(70vh - 280px);
+            min-height: 300px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 0.5rem;
+        }
+        .py-8 {
+            padding-top: 0.5rem;
+            padding-bottom: 0.5rem;
+        }
+        .mb-8 {
+            margin-bottom: 0.5rem;
+        }
+        header {
+            margin-bottom: 0.5rem;
+        }
+        .p-4 {
+            padding: 0.75rem;
         }
         .pulse {
             animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @media screen and(min-width: 1536px) {
+            .container {
+                width: 75vw;
+            }
         }
         @keyframes pulse {
             0%, 100% { opacity: 1; }
@@ -20,12 +44,12 @@
 </head>
 <body class="bg-gray-50">
     <div class="container mx-auto px-4 py-8">
-        <header class="text-center mb-8">
+        <header class="text-center mb-4">
             <h1 class="text-4xl font-bold text-gray-800">Miranda</h1>
             <p class="text-gray-600">Voice-Enabled Sheets Assistant</p>
         </header>
 
-        <div class="bg-white rounded-lg shadow-lg p-6">
+        <div class="bg-white rounded-lg shadow-lg p-4">
             <div id="chat" class="chat-container overflow-y-auto mb-6">
                 <div class="space-y-4" id="messages">
                     <!-- Messages will appear here -->
