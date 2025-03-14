@@ -164,16 +164,26 @@ def query_gemini(user_query: str) -> str:
 # ------------------ Flask App ------------------
 app = Flask(__name__)
 
+@app.errorhandler(500)
+def handle_500(e):
+    return jsonify({
+        "error": "Internal server error",
+        "message": str(e)
+    }), 500
+
 @app.route("/")
 def home():
-    """Root endpoint that returns basic API information."""
-    return jsonify({
-        "status": "running",
-        "endpoints": {
-            "query": "/api/query",
-            "health": "/api/health"
-        }
-    })
+    try:
+        return jsonify({
+            "status": "running",
+            "endpoints": {
+                "query": "/api/query",
+                "health": "/api/health"
+            }
+        })
+    except Exception as e:
+        print(f"Error in home route: {str(e)}")
+        return jsonify({"error": str(e)}), 500
 
 @app.route("/api/query", methods=["POST"])
 def query():

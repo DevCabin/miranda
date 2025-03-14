@@ -1,10 +1,10 @@
 # Miranda - Gemini to Google Sheets Chatbot
 
-A serverless API that provides a conversational interface between Google's Gemini AI and Google Sheets data. This chatbot allows you to query your Google Sheets data using natural language through a REST API, deployed exclusively on Vercel.
+A serverless API that provides a conversational interface between Google's Gemini AI and Google Sheets data. This chatbot allows you to query your Google Sheets data using natural language through a REST API, deployed on Vercel.
 
 ## Overview
 
-Miranda is designed to be a simple, serverless solution for querying Google Sheets data using natural language. It leverages Google's Gemini AI to understand user queries and Langchain to process and execute them against your Google Sheets data.
+Miranda is designed to be a simple, serverless solution for querying Google Sheets data using natural language. It leverages Google's Gemini AI to understand user queries and process them against your Google Sheets data.
 
 ### Key Features
 - Natural language processing of Google Sheets data
@@ -16,10 +16,26 @@ Miranda is designed to be a simple, serverless solution for querying Google Shee
 
 ## Prerequisites
 
-- Google Cloud Project with Gemini API enabled
-- Google Sheets API enabled
-- Service account with access to Google Sheets
-- Vercel account for deployment
+1. Google Cloud Project with:
+   - Gemini API enabled
+   - Google Sheets API enabled
+   - Service account with Sheets access
+2. Vercel account
+3. Git repository
+
+## Environment Variables
+
+The following environment variables must be set in your Vercel project:
+
+```env
+GEMINI_API_KEY=your_gemini_api_key
+GOOGLE_SHEETS_SPREADSHEET_ID=your_spreadsheet_id
+GOOGLE_SHEETS_SERVICE_ACCOUNT_FILE_CONTENT={"type":"service_account",...}
+```
+
+✅ **Verified**: All environment variables are currently set in Vercel project settings.
+
+## Project Structure
 
 ## Setup
 
