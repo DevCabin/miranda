@@ -32,3 +32,20 @@
 - Updated environment variable handling
 ### Fixed
 - JSON parsing issues with service account credentials 
+
+## [1.1.0] - 2024-03-XX
+### Added
+- Implemented Miranda's persona with defined personality traits
+- Added personalized context for user (George)
+- Enhanced prompt engineering for consistent personality
+- Improved natural conversation flow with name usage
+
+### Stable Features
+- Voice interface integration
+- Google Sheets data querying
+- Personalized responses using Miranda's persona
+- Natural conversation handling
+
+### TODO
+- Move persona configuration to separate config file to support multiple personas
+- Implement persona switching mechanism 
