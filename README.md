@@ -91,4 +91,12 @@ This is tagged as v1.0.0. To revert to this stable version:
 - Keep service account credentials secure
 
 ## Status
-✅ Production: Working and stable 
+✅ Production: Working and stable
+
+## TODO
+- Move persona configuration to separate config file
+- Implement persona switching mechanism
+- Add conversation memory features
+- Enhance voice interface with additional controls
+- Implement user settings panel
+- Add support for multiple data sources 
