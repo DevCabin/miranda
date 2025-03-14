@@ -124,10 +124,38 @@
             messages.scrollTop = messages.scrollHeight;
         }
 
-        function speak(text) {
+        function getPreferredVoice() {
+            return new Promise(resolve => {
+                let voices = speechSynthesis.getVoices();
+                if (voices.length) {
+                    // Look for a natural-sounding female voice
+                    let preferredVoice = voices.find(voice => 
+                        (voice.name.includes('Samantha') || // MacOS
+                         voice.name.includes('Microsoft Zira') || // Windows
+                         voice.name.includes('Google UK English Female')) // Chrome
+                        && voice.lang.includes('en')
+                    );
+                    resolve(preferredVoice || voices[0]);
+                } else {
+                    speechSynthesis.onvoiceschanged = () => {
+                        voices = speechSynthesis.getVoices();
+                        let preferredVoice = voices.find(voice => 
+                            (voice.name.includes('Samantha') ||
+                             voice.name.includes('Microsoft Zira') ||
+                             voice.name.includes('Google UK English Female'))
+                            && voice.lang.includes('en')
+                        );
+                        resolve(preferredVoice || voices[0]);
+                    };
+                }
+            });
+        }
+
+        async function speak(text) {
             const utterance = new SpeechSynthesisUtterance(text);
-            utterance.rate = 1;
-            utterance.pitch = 1;
+            utterance.rate = 1.1;  // Slightly faster to sound more natural
+            utterance.pitch = 1.1; // Slightly higher pitch for younger sound
+            utterance.voice = await getPreferredVoice();
             window.speechSynthesis.speak(utterance);
         }
     </script>
