@@ -19,3 +19,10 @@
 - REST API endpoints for querying and health checks
 - Comprehensive error handling
 - Environment variable validation 
+
+## [1.0.2] - 2024-03-19
+### Security
+- Added security notes to README
+- Updated environment variable handling
+### Fixed
+- JSON parsing issues with service account credentials 
