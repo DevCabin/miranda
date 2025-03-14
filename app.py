@@ -236,5 +236,5 @@ def health_check():
     """
     return jsonify({"status": "healthy"})
 
-# Export the Flask app for Vercel
-app = app 
+if __name__ == "__main__":
+    app.run() 
