@@ -186,6 +186,17 @@ def query_gemini(user_query: str) -> str:
 # ------------------ Flask App ------------------
 app = Flask(__name__)
 
+@app.route("/")
+def home():
+    """Root endpoint that returns basic API information."""
+    return jsonify({
+        "status": "running",
+        "endpoints": {
+            "query": "/api/query",
+            "health": "/api/health"
+        }
+    })
+
 @app.route("/api/query", methods=["POST"])
 def query():
     """
