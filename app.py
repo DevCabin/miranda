@@ -49,19 +49,32 @@ def query():
         user_query = request.json.get('query', '')
         
         if should_query_sheets(user_query):
-            # Get sheet data and query as before
+            # Personal query - use sheets but make it conversational
             result = sheets.spreadsheets().values().get(
                 spreadsheetId=os.environ.get('GOOGLE_SHEETS_SPREADSHEET_ID'),
                 range='A1:Z'
             ).execute()
             data = result.get('values', [])
             prompt = f"""
-            Analyze this spreadsheet data: {data}
-            User question: {user_query}
+            Based on this personal data: {data}
+            Answer this question: {user_query}
+            
+            Important:
+            - Respond in a warm, personal tone
+            - Address the user directly using "you" and "your"
+            - Don't mention the spreadsheet or data source
+            - Make it feel like a natural conversation
             """
         else:
-            # Direct Gemini query without sheets data
-            prompt = user_query
+            # General knowledge query - direct to Gemini
+            prompt = f"""
+            Answer this question: {user_query}
+            
+            Important:
+            - Be warm and conversational
+            - Don't mention data sources
+            - Keep it natural and friendly
+            """
             
         response = model.generate_content(prompt)
         return jsonify({'response': response.text})
