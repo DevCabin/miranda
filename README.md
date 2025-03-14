@@ -1,13 +1,25 @@
-# Gemini to Google Sheets Chatbot
+# Miranda - Gemini to Google Sheets Chatbot
 
-A conversational interface that connects Google's Gemini AI with Google Sheets data. This chatbot allows you to query your Google Sheets data using natural language.
+A serverless API that provides a conversational interface between Google's Gemini AI and Google Sheets data. This chatbot allows you to query your Google Sheets data using natural language through a REST API, deployed exclusively on Vercel.
+
+## Overview
+
+Miranda is designed to be a simple, serverless solution for querying Google Sheets data using natural language. It leverages Google's Gemini AI to understand user queries and Langchain to process and execute them against your Google Sheets data.
+
+### Key Features
+- Natural language processing of Google Sheets data
+- Serverless deployment on Vercel
+- REST API interface for querying
+- Secure authentication with Google services
+- Error handling and validation
+- Health check endpoint for monitoring
 
 ## Prerequisites
 
-- Python 3.8 or higher
 - Google Cloud Project with Gemini API enabled
 - Google Sheets API enabled
 - Service account with access to Google Sheets
+- Vercel account for deployment
 
 ## Setup
 
@@ -17,7 +29,7 @@ A conversational interface that connects Google's Gemini AI with Google Sheets d
    pip install -r requirements.txt
    ```
 
-3. Create a `.env` file in the root directory with the following variables:
+3. Configure environment variables in Vercel:
    ```
    GEMINI_API_KEY=your_gemini_api_key
    GOOGLE_SHEETS_SERVICE_ACCOUNT_FILE_CONTENT=your_service_account_json_content
@@ -26,26 +38,33 @@ A conversational interface that connects Google's Gemini AI with Google Sheets d
 
    Note: For the `GOOGLE_SHEETS_SERVICE_ACCOUNT_FILE_CONTENT`, you need to copy the entire contents of your service account JSON file as a string.
 
-## Usage
+## Deployment
 
-1. Start the Flask server:
-   ```bash
-   python app.py
-   ```
+This application is designed to be deployed exclusively on Vercel:
 
-2. The server will start on port 8080 (or the port specified in your environment variables)
+1. Push your code to a GitHub repository
+2. Connect your repository to Vercel
+3. Configure the environment variables in Vercel's project settings
+4. Deploy!
 
-3. Send POST requests to `/query` endpoint with your questions:
-   ```bash
-   curl -X POST http://localhost:8080/query \
-     -H "Content-Type: application/json" \
-     -d '{"query": "What is the total sales in Sheet1?"}'
-   ```
+The application will automatically deploy when you push changes to the main branch.
 
-4. Check the health of the service:
-   ```bash
-   curl http://localhost:8080/health
-   ```
+## API Endpoints
+
+### Query Endpoint
+```bash
+POST /api/query
+Content-Type: application/json
+
+{
+    "query": "What is the total sales in Sheet1?"
+}
+```
+
+### Health Check
+```bash
+GET /api/health
+```
 
 ## Example Queries
 
@@ -61,9 +80,18 @@ The application includes comprehensive error handling for:
 - Invalid queries
 - Server errors
 
+## Development
+
+This application is designed to be deployed directly to Vercel without local development. All changes should be made and tested through the Vercel deployment pipeline.
+
 ## Future Enhancements
 
 - Voice chat interface
 - More sophisticated data analysis capabilities
 - Support for writing to Google Sheets
-- Enhanced natural language processing 
+- Enhanced natural language processing
+- Additional data source integrations
+
+## License
+
+MIT License - See LICENSE file for details 
