@@ -30,23 +30,40 @@ creds = service_account.Credentials.from_service_account_info(
 )
 sheets = build('sheets', 'v4', credentials=creds)
 
+# Add this function to determine query type
+def should_query_sheets(query: str) -> bool:
+    """Determine if query should use Sheets data or regular Gemini."""
+    personal_triggers = {
+        'my', 'mine', 'i', 'me', 'we', 'our',
+        'why do i', 'what do i', 'how do i',
+        'when do i', 'where do i'
+    }
+    
+    query_lower = query.lower()
+    return any(trigger in query_lower for trigger in personal_triggers)
+
+# Modify the query route
 @app.route('/api/query', methods=['POST'])
 def query():
     try:
-        # Get sheet data
-        result = sheets.spreadsheets().values().get(
-            spreadsheetId=os.environ.get('GOOGLE_SHEETS_SPREADSHEET_ID'),
-            range='A1:Z'
-        ).execute()
-        data = result.get('values', [])
-
-        # Query Gemini
-        prompt = f"""
-        Analyze this spreadsheet data: {data}
-        User question: {request.json.get('query', '')}
-        """
-        response = model.generate_content(prompt)
+        user_query = request.json.get('query', '')
         
+        if should_query_sheets(user_query):
+            # Get sheet data and query as before
+            result = sheets.spreadsheets().values().get(
+                spreadsheetId=os.environ.get('GOOGLE_SHEETS_SPREADSHEET_ID'),
+                range='A1:Z'
+            ).execute()
+            data = result.get('values', [])
+            prompt = f"""
+            Analyze this spreadsheet data: {data}
+            User question: {user_query}
+            """
+        else:
+            # Direct Gemini query without sheets data
+            prompt = user_query
+            
+        response = model.generate_content(prompt)
         return jsonify({'response': response.text})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
