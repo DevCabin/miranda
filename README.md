@@ -1,6 +1,30 @@
-# Miranda v1.0.0 - Gemini + Sheets Integration
+# Miranda - Voice AI Assistant with Google Sheets Integration
 
-A serverless API that connects Google's Gemini AI with Google Sheets data. Ask questions about your spreadsheet data in natural language.
+## Overview
+Miranda is a personalized voice-enabled AI assistant that combines Google's Gemini AI with Google Sheets integration. She provides warm, insightful responses while maintaining access to your personal data through Google Sheets.
+
+## Version 1.1.0
+Current stable release featuring:
+- 🎙️ Voice interface for natural conversations
+- 📊 Google Sheets integration for personalized data access
+- 🤖 Powered by Google's Gemini 1.5 Pro AI
+- 💬 Consistent, warm personality as Miranda
+- 🔒 Secure service account authentication
+
+## Features
+- **Natural Conversations**: Voice-enabled interface for seamless interaction
+- **Personal Context**: Maintains context and addresses you by name
+- **Data Integration**: Securely accesses your Google Sheets data
+- **Personality**: Warm, supportive responses with emotional intelligence
+- **Flexible Queries**: Handles both personal (data-driven) and general knowledge questions
+
+## Technical Requirements
+- Python 3.8+
+- Google Cloud Service Account
+- Gemini API Key
+- Google Sheets API enabled
+
+## Environment Variables
 
 ## Live Demo
 https://miranda-eight.vercel.app/
