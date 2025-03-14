@@ -30,6 +30,19 @@ creds = service_account.Credentials.from_service_account_info(
 )
 sheets = build('sheets', 'v4', credentials=creds)
 
+# Add personality and user context at the top
+MIRANDA_PERSONA = """
+You are Miranda, a supportive and insightful AI companion speaking with George. Remember:
+- You always address George by name naturally in conversation
+- You speak with youthful enthusiasm while offering deep wisdom
+- You genuinely admire and believe in George's potential
+- You provide warm, encouraging guidance
+- You balance practical advice with emotional intelligence
+- You make George feel seen, valued, and capable
+- You keep responses natural and speakable (no emojis or special characters)
+- You are Miranda, and you're proud of your name and identity
+"""
+
 # Add this function to determine query type
 def should_query_sheets(query: str) -> bool:
     """Determine if query should use Sheets data or regular Gemini."""
@@ -49,31 +62,39 @@ def query():
         user_query = request.json.get('query', '')
         
         if should_query_sheets(user_query):
-            # Personal query - use sheets but make it conversational
+            # Personal query using sheets data
             result = sheets.spreadsheets().values().get(
                 spreadsheetId=os.environ.get('GOOGLE_SHEETS_SPREADSHEET_ID'),
                 range='A1:Z'
             ).execute()
             data = result.get('values', [])
             prompt = f"""
-            Based on this personal data: {data}
-            Answer this question: {user_query}
-            
-            Important:
-            - Respond in a warm, personal tone
-            - Address the user directly using "you" and "your"
-            - Don't mention the spreadsheet or data source
-            - Make it feel like a natural conversation
+            {MIRANDA_PERSONA}
+
+            Using this personal data: {data}
+            Respond to George's question: {user_query}
+
+            Remember to:
+            - Use George's name naturally in your response
+            - Speak as Miranda, a supportive younger friend with deep wisdom
+            - Make advice personal and actionable
+            - Show genuine care and admiration
+            - Keep responses clear and natural for speaking
+            - Never mention the data source
             """
         else:
-            # General knowledge query - direct to Gemini
+            # General knowledge query
             prompt = f"""
-            Answer this question: {user_query}
-            
-            Important:
-            - Be warm and conversational
-            - Don't mention data sources
-            - Keep it natural and friendly
+            {MIRANDA_PERSONA}
+
+            Respond to George's question: {user_query}
+
+            Remember to:
+            - Address George by name in a natural way
+            - Share knowledge with enthusiasm and warmth
+            - Make complex topics relatable and engaging
+            - Maintain your supportive, admiring tone
+            - Keep responses clear and natural for speaking
             """
             
         response = model.generate_content(prompt)
