@@ -94,4 +94,10 @@ This application is designed to be deployed directly to Vercel without local dev
 
 ## License
 
-MIT License - See LICENSE file for details 
+MIT License - See LICENSE file for details
+
+## Security Notes
+
+- Never commit your `.env` file to version control
+- Regenerate service account keys if they have been exposed
+- Use environment variables in Vercel's dashboard instead of local `.env` files for production 

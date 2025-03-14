@@ -16,10 +16,6 @@ from googleapiclient.discovery import build
 from google.oauth2 import service_account
 import json
 from dotenv import load_dotenv
-from langchain.agents import AgentType, initialize_agent
-from langchain.llms import GooglePalm
-from langchain.tools import Tool
-from langchain.prompts import PromptTemplate
 from flask import Flask, request, jsonify
 from typing import Optional
 
@@ -27,21 +23,48 @@ from typing import Optional
 # This allows for secure configuration without hardcoding sensitive values
 load_dotenv()
 
+# Add this right after load_dotenv()
+print("\n=== Environment Variable Debug ===")
+content = os.getenv("GOOGLE_SHEETS_SERVICE_ACCOUNT_FILE_CONTENT")
+print(f"First 20 chars: [{content[:20]}]")
+print(f"Type: {type(content)}")
+
 # ------------------ Configuration ------------------
 # Retrieve and validate required environment variables
 # These variables are essential for both Gemini AI and Google Sheets access
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-GOOGLE_SHEETS_SERVICE_ACCOUNT_FILE_CONTENT = os.getenv("GOOGLE_SHEETS_SERVICE_ACCOUNT_FILE_CONTENT")
-GOOGLE_SHEETS_SPREADSHEET_ID = os.getenv("GOOGLE_SHEETS_SPREADSHEET_ID")
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+GOOGLE_SHEETS_SERVICE_ACCOUNT_FILE_CONTENT = os.environ.get("GOOGLE_SHEETS_SERVICE_ACCOUNT_FILE_CONTENT")
+GOOGLE_SHEETS_SPREADSHEET_ID = os.environ.get("GOOGLE_SHEETS_SPREADSHEET_ID")
 
 # Validate that all required environment variables are present
 # This prevents runtime errors due to missing configuration
 if not all([GEMINI_API_KEY, GOOGLE_SHEETS_SERVICE_ACCOUNT_FILE_CONTENT, GOOGLE_SHEETS_SPREADSHEET_ID]):
-    raise ValueError("Missing required environment variables. Please check your .env file.")
+    raise ValueError("Missing required environment variables")
 
 # Initialize Gemini AI with the provided API key
 # This sets up the connection to Google's Gemini AI service
 genai.configure(api_key=GEMINI_API_KEY)
+model = genai.GenerativeModel('gemini-1.5-flash')
+
+# Modify fix_json_string to be more verbose
+def fix_json_string(json_str):
+    """Clean and validate JSON string from environment variable."""
+    try:
+        print("\n=== JSON Parsing Debug ===")
+        print(f"Input string starts with: [{json_str[:20]}]")
+        
+        # Remove any outer quotes and whitespace
+        cleaned = json_str.strip().strip('"').strip("'")
+        print(f"After cleaning starts with: [{cleaned[:20]}]")
+        
+        # Try parsing
+        result = json.loads(cleaned)
+        print("JSON parsing successful!")
+        return result
+    except Exception as e:
+        print(f"Error fixing JSON: {str(e)}")
+        print(f"Error type: {type(e)}")
+        raise
 
 # ------------------ Google Sheets Setup ------------------
 def get_sheets_service():
@@ -60,17 +83,18 @@ def get_sheets_service():
         Exception: If there's an error initializing the service
     """
     try:
-        # Parse the service account JSON content from environment variables
+        # Parse the service account info using our helper function
         service_account_info = json.loads(GOOGLE_SHEETS_SERVICE_ACCOUNT_FILE_CONTENT)
-        # Create credentials with read-only access to Google Sheets
+        
+        # Create credentials
         creds = service_account.Credentials.from_service_account_info(
             service_account_info,
             scopes=['https://www.googleapis.com/auth/spreadsheets.readonly']
         )
-        # Build and return the Google Sheets service
         return build('sheets', 'v4', credentials=creds)
     except Exception as e:
-        raise Exception(f"Failed to initialize Google Sheets service: {str(e)}")
+        print(f"Sheets service error: {str(e)}")
+        raise
 
 def get_sheet_data(sheet_name: str, range_: str) -> Optional[list]:
     """
@@ -98,72 +122,6 @@ def get_sheet_data(sheet_name: str, range_: str) -> Optional[list]:
     except Exception as e:
         raise Exception(f"Failed to retrieve sheet data: {str(e)}")
 
-# ------------------ Tool Definition ------------------
-def retrieve_sheet_data(sheet_name_and_range: str) -> str:
-    """
-    Retrieves data from a Google Sheet and formats it for the Langchain agent.
-    
-    This function is used as a tool by the Langchain agent to access Google Sheets data.
-    It expects input in the format 'SheetName!Range' (e.g., 'Sales!A1:B10').
-    
-    Args:
-        sheet_name_and_range (str): Combined sheet name and range in format 'SheetName!Range'
-    
-    Returns:
-        str: The data as a string, or an error message if retrieval fails
-    """
-    try:
-        # Split the input into sheet name and range
-        sheet_name, range_ = sheet_name_and_range.split("!")
-        data = get_sheet_data(sheet_name, range_)
-        if data:
-            return str(data)
-        return "No data found in the specified range."
-    except Exception as e:
-        return f"Error retrieving data: {str(e)}"
-
-# ------------------ Langchain Setup ------------------
-def create_agent():
-    """
-    Initialize and return the Langchain agent with Google Sheets access.
-    
-    This function:
-    1. Creates a Google Palm LLM instance
-    2. Defines the tools available to the agent
-    3. Initializes the agent with the specified configuration
-    
-    Returns:
-        A configured Langchain agent ready to process queries
-    
-    Raises:
-        Exception: If there's an error creating the agent
-    """
-    try:
-        # Initialize the language model with zero temperature for consistent results
-        llm = GooglePalm(google_api_key=GEMINI_API_KEY, temperature=0)
-
-        # Define the tools available to the agent
-        tools = [
-            Tool(
-                name="google_sheet_retriever",
-                func=retrieve_sheet_data,
-                description="Retrieves data from Google Sheets. Input format: SHEET_NAME!RANGE (e.g., 'Sheet1!A1:B10')",
-            )
-        ]
-
-        # Create and return the agent with the specified configuration
-        return initialize_agent(
-            tools,
-            llm,
-            agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
-            verbose=True,
-        )
-    except Exception as e:
-        raise Exception(f"Failed to create agent: {str(e)}")
-
-# Initialize the agent at startup
-agent = create_agent()
-
 # ------------------ Main Function ------------------
 def query_gemini(user_query: str) -> str:
     """
@@ -179,7 +137,27 @@ def query_gemini(user_query: str) -> str:
         str: The agent's response to the query
     """
     try:
-        return agent.run(user_query)
+        # Get available sheets metadata
+        service = get_sheets_service()
+        sheet_metadata = service.spreadsheets().get(spreadsheetId=GOOGLE_SHEETS_SPREADSHEET_ID).execute()
+        sheets = sheet_metadata.get('sheets', [])
+        sheet_names = [sheet['properties']['title'] for sheet in sheets]
+        
+        # Get data from first sheet as sample
+        sample_data = get_sheet_data(sheet_names[0], 'A1:Z10')  # Adjust range as needed
+        
+        # Construct context for Gemini
+        context = f"""
+        Available sheets: {', '.join(sheet_names)}
+        Sample data from {sheet_names[0]}: {sample_data}
+        
+        User query: {user_query}
+        
+        Please analyze the data and respond to the query.
+        """
+        
+        response = model.generate_content(context)
+        return response.text
     except Exception as e:
         return f"Error processing query: {str(e)}"
 
@@ -237,4 +215,47 @@ def health_check():
     return jsonify({"status": "healthy"})
 
 if __name__ == "__main__":
-    app.run() 
+    print("\n=== Testing API Components ===\n")
+    
+    # Test 1: Environment Variables
+    print("1. Checking environment variables...")
+    required_vars = ["GEMINI_API_KEY", "GOOGLE_SHEETS_SERVICE_ACCOUNT_FILE_CONTENT", "GOOGLE_SHEETS_SPREADSHEET_ID"]
+    for var in required_vars:
+        value = os.getenv(var)
+        print(f"  {var}: {'✓ Set' if value else '✗ Missing'}")
+    
+    # Test 2: Google Sheets Connection
+    print("\n2. Testing Google Sheets connection...")
+    try:
+        service = get_sheets_service()
+        # Try to get the spreadsheet metadata
+        sheet = service.spreadsheets().get(spreadsheetId=GOOGLE_SHEETS_SPREADSHEET_ID).execute()
+        print(f"  ✓ Successfully connected to sheet: {sheet.get('properties', {}).get('title')}")
+    except Exception as e:
+        print(f"  ✗ Sheets connection failed: {str(e)}")
+    
+    # Test 3: Gemini API
+    print("\n3. Testing Gemini API...")
+    try:
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        response = model.generate_content("Say 'API test successful!'")
+        print(f"  ✓ Gemini response: {response.text}")
+    except Exception as e:
+        print(f"  ✗ Gemini API failed: {str(e)}")
+    
+    # Test 4: Full Query Flow
+    print("\n4. Testing complete query flow...")
+    try:
+        test_query = "What sheets are available?"
+        response = query_gemini(test_query)
+        print(f"  ✓ Query successful. Response: {response}")
+    except Exception as e:
+        print(f"  ✗ Query failed: {str(e)}")
+    
+    print("\n=== Test Complete ===\n")
+    
+    # Start the Flask app
+    app.run(debug=True, port=3000, host='0.0.0.0')
+
+print("\nService Account Content (first 150 chars):")
+print(GOOGLE_SHEETS_SERVICE_ACCOUNT_FILE_CONTENT[:150]) 
