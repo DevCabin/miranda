@@ -3,16 +3,20 @@
 ## Overview
 Miranda is a personalized voice-enabled AI assistant that combines Google's Gemini AI with Google Sheets integration. She provides warm, insightful responses while maintaining access to your personal data through Google Sheets.
 
-## Version 1.1.0
+## Version 1.1.2 [STABLE]
 Current stable release featuring:
-- 🎙️ Voice interface for natural conversations
+- 🎙️ Continuous voice conversation with intelligent silence detection
+- 🗣️ Fixed voice settings (Tessa at 0.9 speed) for optimal clarity
+- 🔄 Smart pause/resume during conversations
 - 📊 Google Sheets integration for personalized data access
 - 🤖 Powered by Google's Gemini 1.5 Pro AI
 - 💬 Consistent, warm personality as Miranda
 - 🔒 Secure service account authentication
 
 ## Features
-- **Natural Conversations**: Voice-enabled interface for seamless interaction
+- **Intelligent Conversation**: Continuous voice interaction with 1-second silence detection
+- **Natural Voice**: Optimized Tessa voice at 0.9 speed for perfect clarity
+- **Visual Feedback**: Red/blue button states showing conversation status
 - **Personal Context**: Maintains context and addresses you by name
 - **Data Integration**: Securely accesses your Google Sheets data
 - **Personality**: Warm, supportive responses with emotional intelligence
@@ -24,47 +28,22 @@ Current stable release featuring:
 - Gemini API Key
 - Google Sheets API enabled
 
-
 ## Environment Variables
-
-## Live Demo
-https://miranda-eight.vercel.app/
-
-## API Endpoints
-
-### Health Check
-```bash
-curl https://miranda-eight.vercel.app/api/health
-```
-
-### Query Spreadsheet
-```bash
-curl -X POST https://miranda-eight.vercel.app/api/query \
--H "Content-Type: application/json" \
--d '{"query": "What data do you see in the spreadsheet?"}'
-```
-
-## Deployment
-
-### 1. Fork or Clone Repository
-Fork this repository to your GitHub account
-
-### 2. Connect to Vercel
-- Go to [Vercel](https://vercel.com)
-- Create New Project
-- Import your forked repository
-- Select Python framework preset
-
-### 3. Configure Environment Variables
-In Vercel project settings, add:
+Required environment variables in Vercel:
 ```env
 GEMINI_API_KEY=your_gemini_api_key
 GOOGLE_SHEETS_SPREADSHEET_ID=your_spreadsheet_id
 GOOGLE_SHEETS_SERVICE_ACCOUNT_FILE_CONTENT={"type":"service_account",...}
 ```
 
-### 4. Deploy
-Vercel will automatically deploy when you push changes to your repository.
+## Live Demo
+https://miranda-eight.vercel.app/
+
+## Deployment
+1. Fork this repository
+2. Connect to Vercel and import the forked repository
+3. Configure the environment variables above
+4. Deploy - Vercel will automatically deploy from the main branch
 
 ## Example Queries
 - "What data do you see in the spreadsheet?"
@@ -76,14 +55,7 @@ Vercel will automatically deploy when you push changes to your repository.
 - Flask API endpoints
 - Gemini Pro model for AI processing
 - Google Sheets API for data access
-- JSON response format
-
-## Stable Version
-This is tagged as v1.0.0. To revert to this stable version:
-1. Go to your Vercel project
-2. Go to Deployments
-3. Find the deployment tagged with v1.0.0
-4. Click "..." and select "Promote to Production"
+- Web Speech API for voice interaction
 
 ## Security Notes
 - Never commit credentials to repository
@@ -92,12 +64,9 @@ This is tagged as v1.0.0. To revert to this stable version:
 - Keep service account credentials secure
 
 ## Status
-✅ Production: Working and stable
+✅ Production: Stable v1.1.2 with continuous conversation and fixed voice settings
 
 ## TODO
 - Move persona configuration to separate config file
-- Implement persona switching mechanism
 - Add conversation memory features
-- Enhance voice interface with additional controls
-- Implement user settings panel
-- Add support for multiple data sources 
+- Support for multiple data sources 
