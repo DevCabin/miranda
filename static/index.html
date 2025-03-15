@@ -7,8 +7,8 @@
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <style>
         .chat-container {
-            height: calc(70vh - 280px);
-            min-height: 300px;
+            height: calc(85vh - 100px);  /* Increased height since we're hiding voice settings */
+            min-height: 400px;
         }
         .container {
             max-width: 800px;
@@ -41,6 +41,7 @@
             50% { opacity: .5; }
         }
         .voice-settings {
+            display: none;  /* Hide voice settings */
             background: #f8fafc;
             border-radius: 8px;
             padding: 1rem;
@@ -51,6 +52,12 @@
             border-radius: 4px;
             border: 1px solid #e2e8f0;
             margin-right: 1rem;
+        }
+        .listening {
+            background-color: #ef4444;  /* Red when listening */
+        }
+        .listening:hover {
+            background-color: #dc2626;
         }
     </style>
 </head>
@@ -112,10 +119,14 @@
         const rateValue = document.getElementById('rateValue');
         const pitchValue = document.getElementById('pitchValue');
         let recognition;
+        let isListening = false;
+        let silenceTimer = null;
+        const SILENCE_THRESHOLD = 1000; // 1 second of silence before processing
 
-        // Voice settings
+        // Keep existing voice settings code but set fixed values
         let currentVoice = null;
         const preferredVoices = [
+            { name: 'Tessa', contains: 'Tessa' },  // Prioritize Tessa
             { name: 'Google US English', contains: 'Google US English' },
             { name: 'Microsoft David', contains: 'Microsoft David' },
             { name: 'Microsoft Zira', contains: 'Microsoft Zira' },
@@ -124,79 +135,84 @@
             { name: 'Google UK English Male', contains: 'Google UK English Male' }
         ];
 
-        // Initialize voice selection
+        // Initialize voice with fixed settings
         function initializeVoiceSelect() {
             const voices = speechSynthesis.getVoices();
-            voiceSelect.innerHTML = ''; // Clear loading message
-
-            // Filter for English voices and sort by preferred voices first
+            
+            // Filter for English voices
             const englishVoices = voices.filter(voice => voice.lang.includes('en'));
             
-            // Sort voices to put preferred voices first
-            englishVoices.sort((a, b) => {
-                const aPreferred = preferredVoices.findIndex(pv => a.name.includes(pv.contains));
-                const bPreferred = preferredVoices.findIndex(pv => b.name.includes(pv.contains));
-                
-                if (aPreferred !== -1 && bPreferred === -1) return -1;
-                if (bPreferred !== -1 && aPreferred === -1) return 1;
-                if (aPreferred !== -1 && bPreferred !== -1) return aPreferred - bPreferred;
-                return a.name.localeCompare(b.name);
-            });
-
-            // Add voices to select
-            englishVoices.forEach(voice => {
-                const option = document.createElement('option');
-                option.value = voice.name;
-                option.textContent = `${voice.name} (${voice.lang})`;
-                voiceSelect.appendChild(option);
-            });
-
-            // Set default voice
-            if (englishVoices.length > 0) {
-                currentVoice = englishVoices[0];
-                voiceSelect.value = currentVoice.name;
-            }
+            // Find Tessa or first available voice
+            currentVoice = englishVoices.find(voice => voice.name.includes('Tessa')) || englishVoices[0];
+            
+            // Set fixed rate
+            rateRange.value = '0.9';
+            rateValue.textContent = '0.9';
         }
 
-        // Initialize voice selection when voices are loaded
         if (speechSynthesis.onvoiceschanged !== undefined) {
             speechSynthesis.onvoiceschanged = initializeVoiceSelect;
         }
 
-        // Handle voice selection change
-        voiceSelect.addEventListener('change', (e) => {
-            const voices = speechSynthesis.getVoices();
-            currentVoice = voices.find(voice => voice.name === e.target.value);
-        });
-
-        // Handle rate and pitch changes
-        rateRange.addEventListener('input', (e) => {
-            rateValue.textContent = e.target.value;
-        });
-
-        pitchRange.addEventListener('input', (e) => {
-            pitchValue.textContent = e.target.value;
-        });
-
         if ('webkitSpeechRecognition' in window) {
             recognition = new webkitSpeechRecognition();
-            recognition.continuous = false;
-            recognition.interimResults = false;
+            recognition.continuous = true;
+            recognition.interimResults = true;
             recognition.lang = 'en-US';
 
             recognition.onstart = () => {
-                startBtn.classList.add('pulse');
+                isListening = true;
+                startBtn.classList.add('listening');
                 startBtn.querySelector('span').textContent = 'Listening...';
             };
 
             recognition.onend = () => {
-                startBtn.classList.remove('pulse');
-                startBtn.querySelector('span').textContent = 'Start Speaking';
+                if (isListening) {
+                    // Restart if we're supposed to be listening
+                    setTimeout(() => recognition.start(), 100);
+                } else {
+                    startBtn.classList.remove('listening');
+                    startBtn.querySelector('span').textContent = 'Start Conversation';
+                }
             };
 
             recognition.onresult = (event) => {
-                const query = event.results[0][0].transcript;
+                clearTimeout(silenceTimer);
+                
+                let finalTranscript = '';
+                let interimTranscript = '';
+
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+                    if (event.results[i].isFinal) {
+                        finalTranscript += transcript;
+                    } else {
+                        interimTranscript += transcript;
+                    }
+                }
+
+                if (finalTranscript) {
+                    processQuery(finalTranscript);
+                }
+
+                // Set silence timer for interim results
+                if (interimTranscript) {
+                    silenceTimer = setTimeout(() => {
+                        if (interimTranscript.trim().length > 0) {
+                            processQuery(interimTranscript);
+                        }
+                    }, SILENCE_THRESHOLD);
+                }
+            };
+
+            function processQuery(query) {
+                if (query.trim().length === 0) return;
+                
                 addMessage('user', query);
+                
+                // Stop listening while processing
+                recognition.stop();
+                isListening = false;
                 
                 // Send to our API
                 fetch('/api/query', {
@@ -204,18 +220,41 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ query })
                 })
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
                 .then(data => {
                     addMessage('assistant', data.response);
                     speak(data.response);
                 })
                 .catch(error => {
+                    console.error('Error:', error);
                     addMessage('assistant', 'Sorry, there was an error processing your request.');
+                })
+                .finally(() => {
+                    // Resume listening after a short delay
+                    setTimeout(() => {
+                        if (!isListening) {
+                            isListening = true;
+                            recognition.start();
+                        }
+                    }, 1000);
                 });
-            };
+            }
 
             startBtn.addEventListener('click', () => {
-                recognition.start();
+                if (isListening) {
+                    isListening = false;
+                    recognition.stop();
+                    startBtn.classList.remove('listening');
+                    startBtn.querySelector('span').textContent = 'Start Conversation';
+                } else {
+                    isListening = true;
+                    recognition.start();
+                }
             });
         } else {
             startBtn.textContent = 'Speech Recognition Not Supported';
@@ -231,20 +270,25 @@
         }
 
         function speak(text) {
-            // Cancel any ongoing speech
             window.speechSynthesis.cancel();
 
             const utterance = new SpeechSynthesisUtterance(text);
             
-            // Use selected voice
             if (currentVoice) {
                 utterance.voice = currentVoice;
             }
 
-            // Apply current rate and pitch settings
-            utterance.rate = parseFloat(rateRange.value);
-            utterance.pitch = parseFloat(pitchRange.value);
+            utterance.rate = 0.9;  // Fixed rate as requested
+            utterance.pitch = 1.0;  // Default pitch
             utterance.volume = 1.0;
+
+            // After speaking, resume listening
+            utterance.onend = () => {
+                if (!isListening) {
+                    isListening = true;
+                    recognition.start();
+                }
+            };
 
             window.speechSynthesis.speak(utterance);
         }
