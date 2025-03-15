@@ -40,6 +40,18 @@
             0%, 100% { opacity: 1; }
             50% { opacity: .5; }
         }
+        .voice-settings {
+            background: #f8fafc;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        .voice-settings select {
+            padding: 0.5rem;
+            border-radius: 4px;
+            border: 1px solid #e2e8f0;
+            margin-right: 1rem;
+        }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -50,6 +62,30 @@
         </header>
 
         <div class="bg-white rounded-lg shadow-lg p-4">
+            <!-- Voice Settings Panel -->
+            <div class="voice-settings mb-4">
+                <div class="flex items-center justify-between flex-wrap gap-2">
+                    <div class="flex items-center space-x-2">
+                        <label for="voiceSelect" class="text-gray-700">Voice:</label>
+                        <select id="voiceSelect" class="bg-white border border-gray-300 rounded px-3 py-1">
+                            <option value="">Loading voices...</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <div class="flex items-center space-x-2">
+                            <label for="rateRange" class="text-gray-700">Speed:</label>
+                            <input type="range" id="rateRange" min="0.5" max="2" step="0.1" value="1" class="w-24">
+                            <span id="rateValue" class="text-sm text-gray-600">1.0</span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <label for="pitchRange" class="text-gray-700">Pitch:</label>
+                            <input type="range" id="pitchRange" min="0.5" max="2" step="0.1" value="1" class="w-24">
+                            <span id="pitchValue" class="text-sm text-gray-600">1.0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div id="chat" class="chat-container overflow-y-auto mb-6">
                 <div class="space-y-4" id="messages">
                     <!-- Messages will appear here -->
@@ -70,7 +106,77 @@
     <script>
         const startBtn = document.getElementById('startBtn');
         const messages = document.getElementById('messages');
+        const voiceSelect = document.getElementById('voiceSelect');
+        const rateRange = document.getElementById('rateRange');
+        const pitchRange = document.getElementById('pitchRange');
+        const rateValue = document.getElementById('rateValue');
+        const pitchValue = document.getElementById('pitchValue');
         let recognition;
+
+        // Voice settings
+        let currentVoice = null;
+        const preferredVoices = [
+            { name: 'Google US English', contains: 'Google US English' },
+            { name: 'Microsoft David', contains: 'Microsoft David' },
+            { name: 'Microsoft Zira', contains: 'Microsoft Zira' },
+            { name: 'Samantha', contains: 'Samantha' },
+            { name: 'Google UK English Female', contains: 'Google UK English Female' },
+            { name: 'Google UK English Male', contains: 'Google UK English Male' }
+        ];
+
+        // Initialize voice selection
+        function initializeVoiceSelect() {
+            const voices = speechSynthesis.getVoices();
+            voiceSelect.innerHTML = ''; // Clear loading message
+
+            // Filter for English voices and sort by preferred voices first
+            const englishVoices = voices.filter(voice => voice.lang.includes('en'));
+            
+            // Sort voices to put preferred voices first
+            englishVoices.sort((a, b) => {
+                const aPreferred = preferredVoices.findIndex(pv => a.name.includes(pv.contains));
+                const bPreferred = preferredVoices.findIndex(pv => b.name.includes(pv.contains));
+                
+                if (aPreferred !== -1 && bPreferred === -1) return -1;
+                if (bPreferred !== -1 && aPreferred === -1) return 1;
+                if (aPreferred !== -1 && bPreferred !== -1) return aPreferred - bPreferred;
+                return a.name.localeCompare(b.name);
+            });
+
+            // Add voices to select
+            englishVoices.forEach(voice => {
+                const option = document.createElement('option');
+                option.value = voice.name;
+                option.textContent = `${voice.name} (${voice.lang})`;
+                voiceSelect.appendChild(option);
+            });
+
+            // Set default voice
+            if (englishVoices.length > 0) {
+                currentVoice = englishVoices[0];
+                voiceSelect.value = currentVoice.name;
+            }
+        }
+
+        // Initialize voice selection when voices are loaded
+        if (speechSynthesis.onvoiceschanged !== undefined) {
+            speechSynthesis.onvoiceschanged = initializeVoiceSelect;
+        }
+
+        // Handle voice selection change
+        voiceSelect.addEventListener('change', (e) => {
+            const voices = speechSynthesis.getVoices();
+            currentVoice = voices.find(voice => voice.name === e.target.value);
+        });
+
+        // Handle rate and pitch changes
+        rateRange.addEventListener('input', (e) => {
+            rateValue.textContent = e.target.value;
+        });
+
+        pitchRange.addEventListener('input', (e) => {
+            pitchValue.textContent = e.target.value;
+        });
 
         if ('webkitSpeechRecognition' in window) {
             recognition = new webkitSpeechRecognition();
@@ -124,51 +230,34 @@
             messages.scrollTop = messages.scrollHeight;
         }
 
-        function getPreferredVoice() {
-            return new Promise(resolve => {
-                let voices = speechSynthesis.getVoices();
-                if (voices.length) {
-                    // VOICE PREFERENCES (in order of priority):
-                    // Try newer, more natural voices first
-                    // To test available voices, open browser console and type:
-                    // speechSynthesis.getVoices().forEach(v => console.log(v.name))
-                    let preferredVoice = voices.find(voice => 
-                        (voice.name.includes('Google UK English Female') || // Chrome's best voice
-                         voice.name.includes('Microsoft Katja') || // Another good option
-                         voice.name.includes('Victoria')) // macOS option
-                        && voice.lang.includes('en')
-                    );
-                    // If no preferred voice found, pick the first English voice
-                    if (!preferredVoice) {
-                        preferredVoice = voices.find(voice => voice.lang.includes('en'));
-                    }
-                    resolve(preferredVoice || voices[0]);
-                } else {
-                    speechSynthesis.onvoiceschanged = () => {
-                        voices = speechSynthesis.getVoices();
-                        let preferredVoice = voices.find(voice => 
-                            (voice.name.includes('Google UK English Female') ||
-                             voice.name.includes('Microsoft Katja') ||
-                             voice.name.includes('Victoria'))
-                            && voice.lang.includes('en')
-                        );
-                        if (!preferredVoice) {
-                            preferredVoice = voices.find(voice => voice.lang.includes('en'));
-                        }
-                        resolve(preferredVoice || voices[0]);
-                    };
-                }
-            });
-        }
+        function speak(text) {
+            // Cancel any ongoing speech
+            window.speechSynthesis.cancel();
 
-        async function speak(text) {
             const utterance = new SpeechSynthesisUtterance(text);
-            utterance.rate = 1.0;    // Normal speed for clarity
-            utterance.pitch = 1.15;  // Slightly higher for younger sound
-            utterance.volume = 1.0;  // Full volume
-            utterance.voice = await getPreferredVoice();
+            
+            // Use selected voice
+            if (currentVoice) {
+                utterance.voice = currentVoice;
+            }
+
+            // Apply current rate and pitch settings
+            utterance.rate = parseFloat(rateRange.value);
+            utterance.pitch = parseFloat(pitchRange.value);
+            utterance.volume = 1.0;
+
             window.speechSynthesis.speak(utterance);
         }
+
+        // Test voice button
+        function addTestVoiceButton() {
+            const testBtn = document.createElement('button');
+            testBtn.textContent = 'Test Voice';
+            testBtn.className = 'bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-full ml-2';
+            testBtn.onclick = () => speak('Hello, I am Miranda, your voice-enabled sheets assistant.');
+            document.querySelector('.voice-settings').appendChild(testBtn);
+        }
+        addTestVoiceButton();
     </script>
 </body>
 </html>
